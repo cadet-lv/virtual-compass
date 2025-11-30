@@ -1,0 +1,461 @@
+<meta charset="UTF-8">
+  <title>Interaktīvs materiāls ar dinamiskiem rezultātiem</title>
+  <style>
+    <style>
+
+
+.parent {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 8px;
+}
+    
+.div1 {
+    grid-column: span 2 / span 2;
+}
+
+.div2 {
+    grid-row: span 2 / span 2;
+    grid-row-start: 2;
+}
+
+.div3 {
+    grid-row: span 2 / span 2;
+    grid-row-start: 2;
+}
+
+    
+    /* --- CSS nemainās, saglabājas jūsu stils --- */
+    #myScaleWidget {
+      position: relative;
+    }
+    #myScaleWidget #scaleMapContainer {
+      position: relative;
+      width: 100%;
+      height: 70vh;
+      overflow: hidden;
+      background: #ddd;
+      border-radius: 7px;
+    }
+    
+    @media (max-width: 1024px) {
+      #myScaleWidget #scaleMapContainer {
+        height: 100vh;
+      }
+    }
+    
+    #myScaleWidget #mapImage {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.9);
+    }
+    #myScaleWidget #rulerContainer {
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: clamp(300px, 80vw, 800px);
+      height: 60px;
+      z-index: 5;
+    }
+    #myScaleWidget #ruler {
+      position: relative;
+      width: 100%;
+      height: 70px;
+      background: rgba(0, 0, 0, 0.7);
+      margin-bottom: 10px;
+    }
+    .tick {
+      position: absolute;
+      bottom: 0;
+      background: red;
+    }
+    .tick.cm {
+      width: 2px;
+      height: 20px;
+      top: 0;
+    }
+    .tick.mm {
+      width: 1px;
+      height: 10px;
+      top: 0;
+    }
+    .tick-label {
+      position: absolute;
+      white-space: nowrap;
+      top: 30px;
+      color: red;
+      font-size: 12px;
+      transform: translateX(-50%);
+    }
+    .marker {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: transparent;
+      border: 5px solid red;
+      cursor: pointer;
+      z-index: 10;
+      box-sizing: border-box;
+      top: -25px;
+    }
+    #myScaleWidget #markerDraggable::before,
+    #myScaleWidget #markerDraggable::after {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 30px;
+      color: red;
+    }
+    #myScaleWidget #markerDraggable::before {
+      content: "❮";
+      left: -28px;
+    }
+    #myScaleWidget #markerDraggable::after {
+      content: "❯";
+      right: -28px;
+    }
+   
+@keyframes arrowPulseLeft {
+  0%, 100% {
+    transform: translateX(0) translateY(-50%);
+  }
+  50% {
+    transform: translateX(-5px) translateY(-50%);
+  }
+}
+
+@keyframes arrowPulseRight {
+  0%, 100% {
+    transform: translateX(0) translateY(-50%);
+  }
+  50% {
+    transform: translateX(5px) translateY(-50%);
+  }
+}
+
+#myScaleWidget #markerDraggable::before {
+  content: "❮";
+  left: -28px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
+  color: red;
+  animation: arrowPulseLeft 1s infinite;
+}
+
+#myScaleWidget #markerDraggable::after {
+  content: "❯";
+  right: -28px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
+  color: red;
+  animation: arrowPulseRight 1s infinite;
+}    
+
+    #myScaleWidget #infoContainer {
+      position: absolute;
+      bottom: 1%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 8px 12px;
+      border: none;
+      border-radius: 7px;
+      font-size: 14px;
+      color: white;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #myScaleWidget #explanation {
+      text-align: left;
+    }
+    #myScaleWidget #controls input, 
+    #myScaleWidget #controls select {
+      padding: 5px;
+      margin: 2px;
+      font-size: 14px;
+      border: 1px solid #999;
+      background: rgba(0, 0, 0, 0.8);
+      width: 90%;
+      text-align: center;
+      border-color: #783200;
+      margin: 0 auto;
+      color: white;
+      margin-top: 5px;
+    }
+    #MapOverlay {
+      position: absolute;
+      bottom: 4%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 95%;
+      height: 10%;
+      background-color: rgba(255, 0, 0, 1);
+      color: white;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      border-radius: 5px;
+      font-size: 16px;
+      z-index: 100;
+    }
+    /* Jauna daļa: uzklājums, kas sedz scaleMapContainer */
+    #rotateOverlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      z-index: 300;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      font-size: 18px;
+      border-radius: inherit;
+    }
+  </style>
+
+<script>
+    // Global mainīgie
+    let currentCmValue = 5; // Sākotnējā mērījuma vērtība (kartē, cm)
+    let isDragging = false;
+    
+    const rulerContainer = document.getElementById('rulerContainer');
+    
+    const markerStart = document.createElement('div');
+    markerStart.id = 'markerStart';
+    markerStart.classList.add('marker');
+    rulerContainer.appendChild(markerStart);
+    
+    const markerDraggable = document.createElement('div');
+    markerDraggable.id = 'markerDraggable';
+    markerDraggable.classList.add('marker');
+    rulerContainer.appendChild(markerDraggable);
+    
+    function createRulerTicks() {
+      const ruler = document.getElementById('ruler');
+      const rulerWidth = ruler.clientWidth;
+      const totalMm = 20 * 10; // 20 cm = 200 mm
+      const effectiveWidth = rulerWidth * 0.98;
+      const leftMargin = rulerWidth * 0.01;
+      const mmWidth = effectiveWidth / totalMm;
+      
+      ruler.innerHTML = "";
+      
+      for (let i = 0; i <= totalMm; i++) {
+        const tick = document.createElement('div');
+        const pos = leftMargin + i * mmWidth;
+        
+        if (i % 10 === 0) {
+          tick.classList.add('tick', 'cm');
+          tick.style.left = (pos - 1) + 'px';
+          
+          const label = document.createElement('div');
+          label.classList.add('tick-label');
+          label.style.left = pos + 'px';
+          if (i === 0) {
+            label.textContent = "0";
+          } else {
+            label.textContent = (i / 10).toFixed(0);
+            if (i === totalMm) {
+              label.style.transform = "translateX(-90%)";
+            }
+          }
+          ruler.appendChild(label);
+        } else {
+          tick.classList.add('tick', 'mm');
+          tick.style.left = pos + 'px';
+        }
+        ruler.appendChild(tick);
+      }
+    }
+    
+    function updateMarkerStart() {
+      const ruler = document.getElementById('ruler');
+      const rulerWidth = ruler.clientWidth;
+      const leftMargin = rulerWidth * 0.01;
+      markerStart.style.left = (leftMargin - 15) + 'px';
+    }
+    
+    function setMarkerDraggablePosition(cmValue) {
+      const containerRect = rulerContainer.getBoundingClientRect();
+      const fullWidth = containerRect.width;
+      const leftMarginPx = fullWidth * 0.01;
+      const effectiveWidthPx = fullWidth * 0.98;
+      const x = leftMarginPx + (cmValue / 20) * effectiveWidthPx;
+      markerDraggable.style.left = (x - 15) + 'px';
+      calculateDistanceDynamic(cmValue);
+    }
+    
+    function calculateDistanceDynamic(measuredCm) {
+      const explanationDiv = document.getElementById("explanation");
+      const scaleInput = document.getElementById("scale-maps").value;
+      
+      let match = scaleInput.match(/1:(\d+)/);
+      if (!match) {
+        explanationDiv.style.display = "block";
+        explanationDiv.innerHTML = "Lūdzu, ievadiet mērogu formātā 1:XXXXXX";
+        return;
+      }
+      
+      let scaleValue = parseInt(match[1]);
+      let convertedScale = scaleValue;
+      let explanationText = `<strong>Aprēķina skaidrojums:</strong><br>` +
+                            `Mērogs: 1:${scaleValue}<br>`;
+      
+      const unit = document.getElementById("unit").value;
+      let result;
+      
+      if (unit === "cm") {
+        convertedScale /= 100;
+        explanationText += `Mērogs 1:${scaleValue} nozīmē, ka 1 cm uz kartes atbilst ${scaleValue / 100} m dabā.<br>` +
+                           `Noņemot pēdējās divas nulles, iegūstam ${convertedScale} m.<br>`;
+        result = Math.round(convertedScale * measuredCm);
+        explanationText += `Tātad, ja attālums uz kartes ir ${measuredCm.toFixed(2)} cm, tad reālais attālums būs ${result} m dabā.<br><br>`;
+        explanationText += `<strong>Formula:</strong><br>`;
+        explanationText += `${convertedScale} m x ${measuredCm.toFixed(2)} cm = <strong>${result} m</strong>`;
+      } else if (unit === "mm") {
+        convertedScale /= 1000;
+        explanationText += `Mērogs 1:${scaleValue} nozīmē, ka 1 mm uz kartes atbilst ${scaleValue / 1000} m dabā.<br>` +
+                           `Noņemot pēdējās trīs nulles, iegūstam ${convertedScale} m.<br>`;
+        let measuredMm = measuredCm * 10;
+        explanationText += `Uz kartes attālums: ${measuredMm.toFixed(0)} mm (t.i., ${measuredCm.toFixed(2)} cm).<br>`;
+        result = Math.round(convertedScale * measuredMm);
+        explanationText += `Tātad, reālais attālums būs ${result} m dabā.<br><br>`;
+        explanationText += `<strong>Formula:</strong><br>`;
+        explanationText += `${convertedScale} m x ${measuredMm.toFixed(0)} mm = <strong>${result} m</strong>`;
+      }
+      
+      explanationDiv.style.display = "block";
+      explanationDiv.innerHTML = explanationText;
+    }
+    
+    function updateAll() {
+      createRulerTicks();
+      updateMarkerStart();
+      setMarkerDraggablePosition(currentCmValue);
+    }
+    
+    window.addEventListener('resize', () => {
+      updateAll();
+      checkMobileOrientation();
+    });
+    
+    // Klausītāji, lai uzreiz atjaunotu skaidrojumu, mainot mērogu vai vienību
+    document.getElementById("scale-maps").addEventListener("change", () => {
+      calculateDistanceDynamic(currentCmValue);
+    });
+    document.getElementById("unit").addEventListener("change", () => {
+      calculateDistanceDynamic(currentCmValue);
+    });
+    
+    createRulerTicks();
+    updateMarkerStart();
+    setMarkerDraggablePosition(5);
+    
+    // --- PELES NOTIKUMI ---
+    markerDraggable.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isDragging = true;
+      document.body.style.userSelect = 'none';
+    });
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+      document.body.style.userSelect = '';
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      handleDrag(e.clientX);
+    });
+    
+    // --- SKĀRIENNOTIKUMI (touch) ---
+    markerDraggable.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isDragging = true;
+      document.body.style.userSelect = 'none';
+    }, { passive: false });
+    
+    document.addEventListener('touchend', () => {
+      isDragging = false;
+      document.body.style.userSelect = '';
+    }, { passive: false });
+    
+    document.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      handleDrag(touch.clientX);
+    }, { passive: false });
+    
+    function handleDrag(clientX) {
+      const containerRect = rulerContainer.getBoundingClientRect();
+      const fullWidth = containerRect.width;
+      const leftMarginPx = fullWidth * 0.01;
+      const effectiveWidthPx = fullWidth * 0.98;
+      let x = clientX - containerRect.left;
+      
+      if (x < leftMarginPx) x = leftMarginPx;
+      if (x > leftMarginPx + effectiveWidthPx) x = leftMarginPx + effectiveWidthPx;
+      
+      markerDraggable.style.left = (x - 15) + 'px';
+      let measuredCm = ((x - leftMarginPx) / effectiveWidthPx) * 20;
+      currentCmValue = measuredCm;
+      calculateDistanceDynamic(measuredCm);
+    }
+    
+    // --- JAUNA FUNKCIJA: pārbauda ierīces orientāciju mobilajās ierīcēs ---
+    function checkMobileOrientation() {
+      // Ja platums mazāks par augstumu, pieņemam portreta režīmu.
+      if (window.innerWidth < window.innerHeight) {
+        document.getElementById('rotateOverlay').style.display = 'flex';
+      } else {
+        document.getElementById('rotateOverlay').style.display = 'none';
+      }
+    }
+    
+    window.addEventListener('load', checkMobileOrientation);
+  </script>
+<div class="parent">
+    <div class="div1">
+       <div id="scaleMapContainer">
+    <!-- Uzklājums tiek rādīts tikai, ja mobilā ierīce ir portretā orientācijā -->
+    <div id="rotateOverlay">Lūdzu, pagrieziet ierīci horizontālā orientācijā, lai izmantotu šo interaktīvo materiālu!</div>
+    
+    <div id="MapOverlay">Materiāls nav pieejams testa izpildes laikā!</div>
+    <img id="mapImage" src="https://site-710050.mozfiles.com/files/710050/medium/karte_virtual_kompass-2.jpg" alt="Karte">
+  
+    <div id="rulerContainer">
+      <div id="ruler"></div>
+    </div>
+  
+    <div id="infoContainer">
+      <div id="explanation" style="display: none;"></div>
+      <div id="controls">
+        <input type="text" id="scale-maps" placeholder="1:25000" value="1:25000">
+        <select id="unit">
+          <option value="cm" selected="">cm</option>
+          <option value="mm">mm</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="div2">2</div>
+    <div class="div3">3</div>
+</div>
+    
