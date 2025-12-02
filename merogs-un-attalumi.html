@@ -6,18 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
-    /* width */
-    ::-webkit-scrollbar {
-      width: 10px;
-    }
-    /* Track */
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 10px; }
     ::-webkit-scrollbar-track {
-      box-shadow: inset 0 0 5px grey; 
+      box-shadow: inset 0 0 5px grey;
       border-radius: 10px;
     }
-    /* Handle */
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 0, 0, 0.6); 
+      background: rgba(255, 0, 0, 0.6);
       border-radius: 10px;
     }
 
@@ -30,39 +26,36 @@
       background-position: center;
       background-attachment: fixed;
       min-height: 100vh;
+      color:#fff;
     }
 
-    /* 3 konteineru izkārtojums */
-    .parent {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      grid-template-rows: repeat(3, auto);
-      gap: 8px;
-      padding: 12px;
-      background-color: #00000099;
-      border-radius: 10px;
-      max-width: 90%;
+    /* Kopējais lapas ietvars */
+    .page-wrap{
+      max-width: 1200px;
       margin: 40px auto;
-    }
-    .div1,
-    .div2,
-    .div3{
-      border-radius:12px;
-      padding:8px;
-      position:relative;
-      min-height:120px;
-    }
-    .div1{ grid-column: span 2 / span 2; }
-    .div2{
-      grid-row: span 2 / span 2;
-      grid-row-start: 2;
-    }
-    .div3{
-      grid-row: span 2 / span 2;
-      grid-row-start: 2;
+      padding: 0 12px 40px;
     }
 
-    /* ---- MĒROGA WIDGETA STILS ---- */
+    .section{
+      background-color: #00000099;
+      border-radius: 12px;
+      padding: 16px 16px 24px;
+      margin-bottom: 28px;
+    }
+
+    .section-title{
+      text-align:center;
+      font-size: 24px;
+      margin: 0 0 12px;
+    }
+    .section-subtitle{
+      text-align:center;
+      font-size: 14px;
+      opacity:.9;
+      margin: 0 0 18px;
+    }
+
+    /* ---- 1. SEKCIJA: MĒROGA WIDGETS ---- */
 
     #myScaleWidget{
       position:relative;
@@ -73,16 +66,14 @@
     #scaleMapContainer {
       position: relative;
       width: 100%;
-      height: 85vh;
+      height: 85vh;             /* aizņem lielāko daļu ekrāna augšā */
       overflow: hidden;
       background: black;
       border-radius: 7px;
     }
 
     @media (max-width: 1024px) {
-      #scaleMapContainer {
-        height: 100vh;
-      }
+      #scaleMapContainer { height: 80vh; }
     }
 
     #mapImage {
@@ -194,24 +185,25 @@
     }
     #explanation {
       text-align: left;
-      font-size:20px;
+      font-size:18px;
     }
     #controls{
-      min-width:120px;
-      margin-right: 50px;
+      min-width:160px;
+      margin-right: 20px;
     }
     #controls input,
     #controls select {
-      padding: 5px;
-      margin: 2px;
+      padding: 6px 8px;
+      margin: 2px 0;
       font-size: 14px;
       border: 1px solid #783200;
       background: rgba(0, 0, 0, 0.8);
       width: 100%;
       text-align: center;
       color: white;
-      margin-top: 10px;
+      margin-top: 6px;
       box-sizing: border-box;
+      border-radius:6px;
     }
     #controls select {
       -webkit-appearance: none;
@@ -255,29 +247,39 @@
       border-radius: inherit;
     }
 
-    /* ===== Kalkulators + tests (2. un 3. konteiners) ===== */
+    /* ===== 2. SEKCIJA: KALKULATORS + TESTS ===== */
+
+    .tools-grid{
+      display:flex;
+      flex-wrap:wrap;
+      gap:24px;
+      justify-content:center;
+    }
 
     .container-cal {
-      background-color: rgba(0, 0, 0, 0.5);
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+      background-color: rgba(0, 0, 0, 0.55);
+      padding: 20px 22px 24px;
+      border-radius: 10px;
+      box-shadow: 0 18px 34px -18px rgba(0,0,0,.8);
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 85%;
-      max-width: 400px;
-      margin: auto;
+      width: 100%;
+      max-width: 520px;       /* PALIELINĀTS */
+      margin: 0 auto;
       color: white;
       position: relative;
     }
 
-    /* Lai overlay elementam pozicionētu attiecībā pret kalkulatora konteinera malu */
-    #scaleCalcContainer {
-      position: relative;
+    @media (max-width: 800px){
+      .container-cal{
+        max-width: 100%;
+      }
     }
 
-    /* Overlay elements – banneris, kas tiks pozicionēts virs kalkulatora */
+    /* Kalkulatora overlay */
+    #scaleCalcContainer { position: relative; }
+
     #calcOverlay {
       position: absolute;
       bottom: 4%;
@@ -300,13 +302,14 @@
       display: block;
       margin-top: 10px;
       color: white;
+      width:100%;
     }
 
     .container-cal input,
     .container-cal button {
       color: white;
       cursor: pointer;
-      margin-top: 15px;
+      margin-top: 10px;
       width: 100%;
       border-style: solid;
       background-color: rgba(0, 0, 0, 0.5);
@@ -315,6 +318,7 @@
       border-radius: 5px;
       text-align: center;
       border-color: #783200;
+      box-sizing:border-box;
     }
 
     .container-cal select {
@@ -329,6 +333,7 @@
       text-align: center;
       border-style: solid;
       border-color: #783200;
+      box-sizing:border-box;
     }
 
     .button-container {
@@ -336,6 +341,7 @@
       justify-content: space-between;
       width: 100%;
       margin-top: 15px;
+      gap:10px;
     }
     .clear-btn {
       background-color: rgba(255, 0, 0, 0.5) !important;
@@ -343,37 +349,33 @@
     }
 
     .result, .explanation {
-      margin-top: 20px;
+      margin-top: 16px;
       padding: 10px;
       border-radius: 5px;
-      font-size: 16px;
-      width: 95%;
+      font-size: 15px;
+      width: 100%;
       color: white;
+      box-sizing:border-box;
     }
-    .result.success {
-      background: rgba(0, 255, 0, 0.2) !important;
-    }
-    .result.error { 
-      background: rgba(255, 0, 0, 0.5) !important; 
-    }
-    .explanation {
-      background: rgba(255, 255, 0, 0.3) !important;
-    }
+    .result.success { background: rgba(0, 255, 0, 0.2) !important; }
+    .result.error  { background: rgba(255, 0, 0, 0.5) !important; }
+    .explanation   { background: rgba(255, 255, 0, 0.2) !important; }
 
     /* Testa specifiskais */
     .result-mtest1 {
-      margin-top: 20px;
+      margin-top: 16px;
       padding: 10px;
       border-radius: 5px;
-      font-size: 16px;
-      width: 95%;
+      font-size: 15px;
+      width: 100%;
       color: white;
+      box-sizing:border-box;
     }
 
     #question-boxes {
       display: flex;
       gap: 5px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       justify-content: center;
       width: 100%;
     }
@@ -387,19 +389,21 @@
       border-radius: 4px;
       user-select: none;
       font-weight: bold;
+      font-size:12px;
     }
 
     #final-result {
       display: none;
-      margin-top: 20px;
+      margin-top: 16px;
       background: #dff0d8;
       padding: 15px;
       border-radius: 5px;
-      width: 85%;
-      max-width: 400px;
-      margin: 20px auto;
+      width: 100%;
+      max-width: 520px;
+      margin: 20px auto 0;
       text-align: center;
       color: #000;
+      box-sizing:border-box;
     }
 
     #exit-test-btn, #exitTestDuringBtn {
@@ -414,40 +418,30 @@
 
     #explanation-btn {
       background-color: #783200;
-      margin-top: 15px;
+      margin-top: 12px;
       padding: 10px;
       border-radius: 5px;
       display: none;
+      width:100%;
+      box-sizing:border-box;
     }
 
     #exitConfirmationDropdown {
       display: none;
       background: rgba(0, 0, 0, 0.2);
       color: white;
-      border: 1px solid #ccc;
+      border: 1px solid #783200;
       padding: 10px;
       border-radius: 5px;
       margin-top: 10px;
       width: 100%;
       text-align: center;
-      border-color: #783200;
+      box-sizing:border-box;
     }
-    #exitConfirmationDropdown p {
-      margin: 0 0 10px 0;
-    }
-    .confirm-btn {
-      background-color: rgba(255, 0, 0, 0.5);
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      margin: 5px;
-      border-radius: 5px;
-      cursor: pointer;
-      width: auto;
-    }
+    #exitConfirmationDropdown p { margin: 0 0 10px 0; }
+
+    .confirm-btn,
     .cancel-btn {
-      background-color: #783200;
-      color: white;
       border: none;
       padding: 8px 12px;
       margin: 5px;
@@ -455,13 +449,19 @@
       cursor: pointer;
       width: auto;
     }
+    .confirm-btn { background-color: rgba(255, 0, 0, 0.5); color: white; }
+    .cancel-btn  { background-color: #783200; color: white; }
   </style>
 </head>
 <body>
 
-  <div class="parent">
-    <!-- 1. KONTEINERS: interaktīvais lineāls -->
-    <div class="div1">
+  <div class="page-wrap">
+
+    <!-- 1. SEKCIJA: interaktīvais lineāls -->
+    <section class="section">
+      <h1 class="section-title">Mērogs un attālumi</h1>
+      <p class="section-subtitle">Velc marķieri uz lineāla un noskaidro, kādam attālumam dabā tas atbilst.</p>
+
       <div id="myScaleWidget">
         <div id="scaleMapContainer">
           <!-- Paziņojums par orientāciju -->
@@ -499,74 +499,78 @@
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- 2. KONTEINERS: Mēroga kalkulators -->
-    <div class="div2">
-      <div id="scaleCalcContainer" class="container-cal">
-        <div id="calcOverlay">Kalkulātors nav pieejams testa izpildes laikā!</div>
-        <h2>Mēroga kalkulators</h2>
+    <!-- 2. SEKCIJA: kalkulators + tests -->
+    <section class="section">
+      <h2 class="section-title">Mēroga kalkulators un treniņu tests</h2>
+      <p class="section-subtitle">Vispirms aprēķini attālumu ar kalkulatoru, pēc tam pārbaudi sevi testā.</p>
 
-        <label for="scale">Ievadiet mērogu (piem. 1:XXXXX):</label>
-        <input type="text" id="scale" placeholder="1:25000" onfocus="clearPlaceholder(this)">
+      <div class="tools-grid">
+        <!-- Kalkulators -->
+        <div id="scaleCalcContainer" class="container-cal">
+          <div id="calcOverlay">Kalkulātors nav pieejams testa izpildes laikā!</div>
+          <h3 style="margin-top:0;">Mēroga kalkulators</h3>
 
-        <label for="distance">Mērītais attālums kartē:</label>
-        <input type="number" id="distance" placeholder="0" onfocus="clearPlaceholder(this)">
+          <label for="scale">Ievadiet mērogu (piem. 1:XXXXX):</label>
+          <input type="text" id="scale" placeholder="1:25000" onfocus="clearPlaceholder(this)">
 
-        <label for="unit">Izvēlieties mērvienību:</label>
-        <select id="unit">
-          <option value="cm">cm</option>
-          <option value="mm">mm</option>
-        </select>
+          <label for="distance">Mērītais attālums kartē:</label>
+          <input type="number" id="distance" placeholder="0" onfocus="clearPlaceholder(this)">
 
-        <div class="button-container">
-          <button class="clear-btn" onclick="clearData()">Notīrīt datus</button>
-          <button style="background-color: #783200; color: white; cursor: pointer; margin-top: 15px; border: none;" onclick="calculateDistance()">Aprēķināt</button>
+          <label for="unit">Izvēlieties mērvienību:</label>
+          <select id="unit">
+            <option value="cm">cm</option>
+            <option value="mm">mm</option>
+          </select>
+
+          <div class="button-container">
+            <button class="clear-btn" onclick="clearData()">Notīrīt datus</button>
+            <button style="background-color: #783200; border:none;" onclick="calculateDistance()">Aprēķināt</button>
+          </div>
+
+          <div id="result" class="result" style="display: none;"></div>
+          <div id="calc-explanation" class="explanation" style="display: none;"></div>
         </div>
 
-        <div id="result" class="result" style="display: none;"></div>
-        <div id="calc-explanation" class="explanation" style="display: none;"></div>
-      </div>
-    </div>
+        <!-- Tests -->
+        <div class="container-cal" id="test-container">
+          <div id="question-boxes">
+            <div class="question-box" id="qb1">1</div>
+            <div class="question-box" id="qb2">2</div>
+            <div class="question-box" id="qb3">3</div>
+            <div class="question-box" id="qb4">4</div>
+            <div class="question-box" id="qb5">5</div>
+            <div class="question-box" id="qb6">6</div>
+            <div class="question-box" id="qb7">7</div>
+            <div class="question-box" id="qb8">8</div>
+            <div class="question-box" id="qb9">9</div>
+            <div class="question-box" id="qb10">10</div>
+          </div>
 
-    <!-- 3. KONTEINERS: Mēroga aprēķinu tests -->
-    <div class="div3">
-      <div class="container-cal" id="test-container">
-        <div id="question-boxes">
-          <div class="question-box" id="qb1">1</div>
-          <div class="question-box" id="qb2">2</div>
-          <div class="question-box" id="qb3">3</div>
-          <div class="question-box" id="qb4">4</div>
-          <div class="question-box" id="qb5">5</div>
-          <div class="question-box" id="qb6">6</div>
-          <div class="question-box" id="qb7">7</div>
-          <div class="question-box" id="qb8">8</div>
-          <div class="question-box" id="qb9">9</div>
-          <div class="question-box" id="qb10">10</div>
-        </div>
+          <h3 style="margin-top:0;">Mēroga aprēķinu tests</h3>
+          <p><b>Uzdevums:</b></p>
+          <p id="task-mtest">Nospied pogu "Sākt testu" lai uzsāktu!</p>
 
-        <h2>Mēroga aprēķinu tests</h2>
-        <p><b>Uzdevums:</b></p>
-        <p id="task-mtest">Nospied pogu "Sākt testu" lai uzsāktu!</p>
+          <label for="answer-mtest">Ievadiet aprēķināto attālumu dabā (m):</label>
+          <input type="number" id="answer-mtest" placeholder="Ievadi atbildi" disabled>
 
-        <label for="answer-mtest">Ievadiet aprēķināto attālumu dabā (m):</label>
-        <input type="number" id="answer-mtest" placeholder="Ievadi atbildi" disabled>
+          <button id="startTestBtn" onclick="startTest()">Sākt testu</button>
+          <button id="check-btn-mtest" style="display:none;" onclick="checkAnswerMtest()">Pārbaudīt</button>
 
-        <button id="startTestBtn" onclick="startTest()">Sākt testu</button>
-        <button id="check-btn-mtest" style="display:none;" onclick="checkAnswerMtest()">Pārbaudīt</button>
+          <div id="result-mtest" class="result-mtest1" style="display: none;"></div>
 
-        <div id="result-mtest" class="result-mtest1" style="display: none;"></div>
+          <button id="explanation-btn" onclick="toggleExplanation()">Skaidrojums</button>
+          <div id="explanation-mtest" class="explanation" style="display: none;"></div>
 
-        <button id="explanation-btn" onclick="toggleExplanation()">Skaidrojums</button>
-        <div id="explanation-mtest" class="explanation" style="display: none;"></div>
+          <button id="next-btn-mtest" onclick="nextTaskMtest()" style="display: none;">Nākamais uzdevums</button>
+          <button id="exitTestDuringBtn" onclick="toggleExitDropdown()" style="display:none;">Iziet no testa</button>
 
-        <button id="next-btn-mtest" onclick="nextTaskMtest()" style="display: none;">Nākamais uzdevums</button>
-        <button id="exitTestDuringBtn" onclick="toggleExitDropdown()" style="display:none;">Iziet no testa</button>
-
-        <div id="exitConfirmationDropdown">
-          <p>Vai tiešām vēlaties iziet no testa?</p>
-          <button class="confirm-btn" onclick="confirmExitTest()">Jā</button>
-          <button class="cancel-btn" onclick="toggleExitDropdown()">Turpināt testu</button>
+          <div id="exitConfirmationDropdown">
+            <p>Vai tiešām vēlaties iziet no testa?</p>
+            <button class="confirm-btn" onclick="confirmExitTest()">Jā</button>
+            <button class="cancel-btn" onclick="toggleExitDropdown()">Turpināt testu</button>
+          </div>
         </div>
       </div>
 
@@ -575,19 +579,18 @@
         <p id="score-info"></p>
         <button id="exit-test-btn" onclick="toggleExitDropdown()">Iziet no testa</button>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- 1) Interaktīvais lineāls -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      let currentCmValue = 5; // sākotnējais attālums cm
+      let currentCmValue = 5;
       let isDragging = false;
       let isTypingCmInput = false;
 
       const rulerContainer = document.getElementById('rulerContainer');
       const ruler = document.getElementById('ruler');
-
       if (!rulerContainer || !ruler) return;
 
       const markerStart = document.createElement('div');
@@ -602,7 +605,7 @@
 
       function createRulerTicks() {
         const rulerWidth = ruler.clientWidth;
-        const totalMm = 20 * 10; // 20 cm = 200 mm
+        const totalMm = 20 * 10;
         const effectiveWidth = rulerWidth * 0.98;
         const leftMargin = rulerWidth * 0.01;
 
@@ -811,11 +814,10 @@
     });
   </script>
 
-  <!-- 2) Mēroga kalkulators -->
+  <!-- 2) Kalkulators -->
   <script>
-    function clearPlaceholder(element) {
-      element.placeholder = "";
-    }
+    function clearPlaceholder(element) { element.placeholder = ""; }
+
     function calculateDistance() {
       let scaleInput = document.getElementById("scale").value;
       let distance = parseFloat(document.getElementById("distance").value);
@@ -840,7 +842,7 @@
         return;
       }
 
-      let scaleValue = parseInt(match[1]);
+      let scaleValue = parseInt(match[1], 10);
       let convertedScale = scaleValue;
       let explanationText = `<strong>Aprēķina skaidrojums:</strong><br>` +
           `Mērogs: 1:${scaleValue}<br>`;
@@ -856,7 +858,7 @@
       }
 
       let result = convertedScale * distance;
-      result = Math.round(result * 100) / 100; // līdz 2 cipariem aiz komata
+      result = Math.round(result * 100) / 100;
 
       resultDiv.style.display = "block";
       resultDiv.className = "result success";
@@ -879,7 +881,7 @@
     }
   </script>
 
-  <!-- 3) Mēroga aprēķinu tests -->
+  <!-- 3) Tests -->
   <script>
     let scalesMtest = [10000, 25000, 50000, 75000];
     let currentScaleMtest, currentDistanceMtest, correctAnswerMtest, unitTypeMtest;
@@ -995,7 +997,9 @@
 
     function toggleExplanation() {
       let explanationDivMtest = document.getElementById("explanation-mtest");
-      explanationDivMtest.style.display = explanationDivMtest.style.display === "none" || explanationDivMtest.style.display === "" ? "block" : "none";
+      explanationDivMtest.style.display =
+        explanationDivMtest.style.display === "none" || explanationDivMtest.style.display === "" 
+        ? "block" : "none";
     }
 
     function nextTaskMtest() {
@@ -1028,7 +1032,8 @@
 
     function toggleExitDropdown() {
       let dropdown = document.getElementById("exitConfirmationDropdown");
-      dropdown.style.display = dropdown.style.display === "none" || dropdown.style.display === "" ? "block" : "none";
+      dropdown.style.display =
+        dropdown.style.display === "none" || dropdown.style.display === "" ? "block" : "none";
     }
 
     function confirmExitTest() {
@@ -1038,7 +1043,7 @@
 
     function performExitTest() {
       document.getElementById("final-result").style.display = "none";
-      document.getElementById("test-container").style.display = "none";
+      document.getElementById("test-container").style.display = "flex";
 
       questionCount = 0;
       correctCount = 0;
@@ -1054,7 +1059,6 @@
       document.getElementById("explanation-btn").style.display = "none";
       document.getElementById("next-btn-mtest").style.display = "none";
 
-      document.getElementById("test-container").style.display = "flex";
       document.getElementById("startTestBtn").style.display = "block";
       document.getElementById("check-btn-mtest").style.display = "none";
       document.getElementById("exitTestDuringBtn").style.display = "none";
@@ -1072,36 +1076,6 @@
         document.getElementById("MapOverlay").style.display = "none";
       }
     }
-  </script>
-
-  <!-- 4) Navigācijas aktīvā poga -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      let path = window.location.pathname.split('/').pop();
-      if (!path) path = 'index.html';
-
-      document.querySelectorAll('.dropdown-menu .dropdown-link').forEach(function (link) {
-        const href = link.getAttribute('href');
-        if (!href) return;
-        const file = href.split('/').pop();
-        if (file === path) {
-          link.classList.add('active');
-          const menu = link.closest('.dropdown-menu');
-          if (menu && menu.previousElementSibling) {
-            menu.previousElementSibling.classList.add('active');
-          }
-        }
-      });
-
-      document.querySelectorAll('nav a').forEach(function (link) {
-        const href = link.getAttribute('href');
-        if (!href) return;
-        const file = href.split('/').pop();
-        if (file === path) {
-          link.classList.add('active');
-        }
-      });
-    });
   </script>
 
 </body>
