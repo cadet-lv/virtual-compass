@@ -354,12 +354,12 @@
     </div>
   </div>
 
-  <!-- Pannellum JS -->
+<!-- Pannellum JS -->
   <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
   <script>
     var cameraStream = null;
+
     window.onload = function() {
-      // Inicializē Pannellum (panorāma)
       var viewer = pannellum.viewer('panorama', {
         type: 'equirectangular',
         panorama: 'https://i.imgur.com/w4maDHx.jpeg',
@@ -373,45 +373,53 @@
         ignoreGPanoXMP: true
       });
 
-      // Atjauno kompasu adatu rotāciju
+      /* ===== Adata no panorāmas yaw ===== */
       function updateCompassNeedles() {
         var currentYaw = viewer.getYaw();
-        // 3D adata
         var needle3d = document.querySelector('.compass-needle');
         if (needle3d) {
-          needle3d.style.transform = 'translate(-50%, -50%) rotateX(45deg) rotateZ(' + (-currentYaw) + 'deg)';
+          needle3d.style.transform =
+            'translate(-50%, -50%) rotateX(45deg) rotateZ(' + (-currentYaw) + 'deg)';
         }
-        // 2D adata
         var needle2d = document.querySelector('.compass-2d-needle');
         if (needle2d) {
-          needle2d.style.transform = 'translate(-50%, -50%) rotate(' + (-currentYaw) + 'deg)';
+          needle2d.style.transform =
+            'translate(-50%, -50%) rotate(' + (-currentYaw) + 'deg)';
         }
       }
       setInterval(updateCompassNeedles, 50);
       viewer.on('viewchange', updateCompassNeedles);
 
-      // Manuālā skalas rotācija
+      /* ===== Manuālā skalas rotācija (relatīva) ===== */
       var currentManualAngle = 0;
+
       function updateScales(angle) {
         angle = ((angle % 360) + 360) % 360;
         currentManualAngle = angle;
-        // 3D skala
-        var compassScale = document.querySelector('.compass-scale');
-        compassScale.style.transform = 'translate(-50%, -50%) rotateX(45deg) rotate(' + angle + 'deg)';
-        // 2D skala
+
+        var compassScale3d = document.querySelector('.compass-scale');
+        if (compassScale3d) {
+          compassScale3d.style.transform =
+            'translate(-50%, -50%) rotateX(45deg) rotate(' + angle + 'deg)';
+        }
+
         var compass2dScale = document.querySelector('.compass-2d-scale');
-        compass2dScale.style.transform = 'translate(-50%, -50%) rotate(' + angle + 'deg)';
-        // Atjaunina 2D loka punktiņu
+        if (compass2dScale) {
+          compass2dScale.style.transform =
+            'translate(-50%, -50%) rotate(' + angle + 'deg)';
+        }
+
         var indicator2d = document.querySelector('.rotation-indicator-2d');
         var dot2d = document.querySelector('.rotation-dot-2d');
         updateRotationDot(indicator2d, dot2d, angle);
-        // Ja grādu displejs ir redzams, atjaunina tā vērtību
+
         var degreeDisplay = document.getElementById('degreeDisplay');
-        if (degreeDisplay.style.display !== 'none') {
+        if (degreeDisplay && degreeDisplay.style.display !== 'none') {
           var displayAngle = (360 - angle) % 360;
           degreeDisplay.innerText = Math.round(displayAngle) + "°";
         }
       }
+
       function updateRotationDot(indicatorElem, dotElem, angleDeg) {
         if (!indicatorElem || !dotElem) return;
         var radius = (indicatorElem.offsetWidth / 2) - (dotElem.offsetWidth / 2);
@@ -420,6 +428,7 @@
         var y = radius * Math.sin(rad);
         dotElem.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
       }
+
       function calculateAngle(clientX, clientY, element) {
         var rect = element.getBoundingClientRect();
         var centerX = rect.left + rect.width / 2;
@@ -428,16 +437,24 @@
         var dy = clientY - centerY;
         return Math.atan2(dy, dx) * (180 / Math.PI);
       }
+
       var isDragging = false;
       var activeElement = null;
+      var dragStartPointerAngle = 0;
+      var dragStartManualAngle = 0;
+
+      function angleDiff(a, b) {
+        var d = a - b;
+        var tmp = (d + 180) % 360;
+        if (tmp < 0) tmp += 360;
+        return tmp - 180;
+      }
+
       function startDrag(e) {
         isDragging = true;
         activeElement = e.currentTarget;
         activeElement.style.cursor = "grabbing";
-        e.preventDefault();
-      }
-      function onDrag(e) {
-        if (!isDragging) return;
+
         var clientX, clientY;
         if (e.type.startsWith("touch")) {
           clientX = e.touches[0].clientX;
@@ -446,9 +463,33 @@
           clientX = e.clientX;
           clientY = e.clientY;
         }
-        var angle = calculateAngle(clientX, clientY, activeElement);
-        updateScales(angle);
+
+        dragStartPointerAngle = calculateAngle(clientX, clientY, activeElement);
+        dragStartManualAngle = currentManualAngle;
+
+        e.preventDefault();
       }
+
+      function onDrag(e) {
+        if (!isDragging || !activeElement) return;
+
+        var clientX, clientY;
+        if (e.type.startsWith("touch")) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+
+        var currentPointerAngle = calculateAngle(clientX, clientY, activeElement);
+        var delta = angleDiff(currentPointerAngle, dragStartPointerAngle);
+        var newAngle = dragStartManualAngle + delta;
+        updateScales(newAngle);
+
+        e.preventDefault();
+      }
+
       function endDrag() {
         if (activeElement) {
           activeElement.style.cursor = "grab";
@@ -456,9 +497,11 @@
         isDragging = false;
         activeElement = null;
       }
+
       var compassScaleElem = document.querySelector('.compass-scale');
       var compass2dScaleElem = document.querySelector('.compass-2d-scale');
-      [compassScaleElem, compass2dScaleElem].forEach(function(el) {
+      [compassScaleElem, compass2dScaleElem].forEach(function (el) {
+        if (!el) return;
         el.addEventListener("mousedown", startDrag);
         el.addEventListener("touchstart", startDrag);
       });
@@ -466,11 +509,13 @@
       window.addEventListener("touchmove", onDrag);
       window.addEventListener("mouseup", endDrag);
       window.addEventListener("touchend", endDrag);
+
       updateScales(0);
 
-      // Funkcija grādu displeja toggling (labais loks)
-      window.toggleDegrees = function() {
+      /* ===== Grādu displeja toggling ===== */
+      window.toggleDegrees = function () {
         var degreeDisplay = document.getElementById('degreeDisplay');
+        if (!degreeDisplay) return;
         if (degreeDisplay.style.display === 'none' || degreeDisplay.style.display === '') {
           degreeDisplay.style.display = 'block';
           var displayAngle = (360 - currentManualAngle) % 360;
@@ -480,10 +525,12 @@
         }
       };
 
-      // Toggle funkcija 2D kompasa paplašināšanai – maina tekstu uz "samazināt" vai "palielināt"
-      window.toggleExpand2D = function() {
+      /* ===== 2D kompasa palielināšana/samazināšana ===== */
+      window.toggleExpand2D = function () {
         var compass2dContainer = document.getElementById('compass2dContainer');
         var textPath = document.querySelector('textPath[href="#leftArc"]');
+        if (!compass2dContainer || !textPath) return;
+
         if (compass2dContainer.classList.contains('expanded')) {
           compass2dContainer.classList.remove('expanded');
           textPath.textContent = "palielināt";
@@ -493,30 +540,30 @@
         }
       };
 
-      // Jaunā toggleCamera funkcija – pārslēdz starp panorāmu un mobīlo ierīces kameru
-      window.toggleCamera = function() {
+      /* ===== toggleCamera kā iepriekš ===== */
+      window.toggleCamera = function () {
         var video = document.getElementById("liveVideo");
         var panorama = document.getElementById("panorama");
         var btn = document.getElementById("toggleCameraButton");
+        if (!video || !panorama || !btn) return;
+
         if (video.style.display === "none" || video.style.display === "") {
-          // Pārslēdz uz kameras reāllaika režīmu
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-              .then(function(stream) {
+              .then(function (stream) {
                 cameraStream = stream;
                 video.srcObject = stream;
                 video.style.display = "block";
                 panorama.style.display = "none";
                 btn.textContent = "Panorama";
               })
-              .catch(function(err) {
+              .catch(function (err) {
                 console.log("Kameras piekļuve neizdevās:", err);
               });
           }
         } else {
-          // Pārslēdz atpakaļ uz panorāmu
           if (cameraStream) {
-            cameraStream.getTracks().forEach(function(track) {
+            cameraStream.getTracks().forEach(function (track) {
               track.stop();
             });
           }
@@ -528,43 +575,35 @@
     };
   </script>
 
+  <!-- Navigācijas active-classes skripts (kā tev bija) -->
   <script>
-document.addEventListener('DOMContentLoaded', function () {
-  // Paņem pašreizējā URL faila nosaukumu
-  let path = window.location.pathname.split('/').pop();
-  // Ja URL ir .../virtual-compass/ bez faila – uzskatām, ka tā ir index.html
-  if (!path) path = 'index.html';
+    document.addEventListener('DOMContentLoaded', function () {
+      let path = window.location.pathname.split('/').pop();
+      if (!path) path = 'index.html';
 
-  // 1) Atzīmē dropdown linkus (Mācību materiāli, Lietotāju ceļvedis)
-  document.querySelectorAll('.dropdown-menu .dropdown-link').forEach(function (link) {
-    const href = link.getAttribute('href');
-    if (!href) return;
+      document.querySelectorAll('.dropdown-menu .dropdown-link').forEach(function (link) {
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const file = href.split('/').pop();
+        if (file === path) {
+          link.classList.add('active');
+          const menu = link.closest('.dropdown-menu');
+          if (menu && menu.previousElementSibling) {
+            menu.previousElementSibling.classList.add('active');
+          }
+        }
+      });
 
-    const file = href.split('/').pop(); // tikai faila daļa
-    if (file === path) {
-      // Pašam linkam pievieno .active
-      link.classList.add('active');
-
-      // Atzīmē arī galveno pogu – tā, kas ir tieši pirms .dropdown-menu
-      const menu = link.closest('.dropdown-menu');
-      if (menu && menu.previousElementSibling) {
-        menu.previousElementSibling.classList.add('active');
-      }
-    }
-  });
-
-  // 2) Ja ir augšējā līmeņa linki bez dropdown (piem. Sākums)
-  document.querySelectorAll('nav a').forEach(function (link) {
-    const href = link.getAttribute('href');
-    if (!href) return;
-
-    const file = href.split('/').pop();
-    if (file === path) {
-      link.classList.add('active');
-    }
-  });
-});
-</script>
+      document.querySelectorAll('nav a').forEach(function (link) {
+        const href = link.getAttribute('href');
+        if (!href) return;
+        const file = href.split('/').pop();
+        if (file === path) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>
