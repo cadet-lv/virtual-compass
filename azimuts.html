@@ -166,24 +166,9 @@
       pointer-events: none;
     }
 
-    /* Rotācijas indikators & punkts (ja tev vajag) */
-    .rotation-indicator-2d {
-      position: absolute;
-      inset: 18%;
-      border-radius: 50%;
-      border: 1px dashed rgba(255, 255, 255, 0.2);
-    }
 
-    .rotation-dot-2d {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: red;
-      transform: translate(-50%, -50%);
-    }
+
+
 
     /* Grādu displejs virs kompasa */
     .degree-display {
@@ -306,9 +291,7 @@
              class="compass-2d-needle"
              alt="Kompass adata (2D)">
 
-        <div class="rotation-indicator-2d">
-          <div class="rotation-dot-2d"></div>
-        </div>
+       
 
         <div id="degreeDisplay" class="degree-display">0°</div>
       </div>
@@ -397,9 +380,7 @@
             'translate(-50%, -50%) rotate(' + angle + 'deg)';
         }
 
-        var indicator2d = document.querySelector('.rotation-indicator-2d');
-        var dot2d = document.querySelector('.rotation-dot-2d');
-        updateRotationDot(indicator2d, dot2d, angle);
+
 
         var degreeDisplay = document.getElementById('degreeDisplay');
         if (degreeDisplay && degreeDisplay.style.display !== 'none') {
