@@ -162,7 +162,7 @@
     }
 
     .compass-2d-needle {
-      width: 7%;
+      width: 4%;
       pointer-events: none;
     }
 
@@ -188,10 +188,10 @@
     /* Grādu displejs virs kompasa */
     .degree-display {
       position: absolute;
-      top: 6px;
+      top: 0px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 18px;
+      font-size: 25px;
       color: #fff;
       background: rgba(0, 0, 0, 0.7);
       padding: 5px 10px;
@@ -202,18 +202,21 @@
 
 /* Loku pogas – vienmēr zem skalas pa vidu */
 .arc-buttons {
-  position: absolute;
-  left: 50%;
-  top: 100%;                        /* piesienam pie apļa apakšas */
-  transform: translate(-50%, -38%); /* mazliet uz augšu, lai pieguļ aplim */
-  width: 70%;
-  max-width: 320px;
+    position: absolute;
+    left: 50%;
+    top: 37%;
+    transform: translate(-50%, -38%);
+    width: 130%;
+    max-width: 320px;
 }
 
 /* Palielinātajā režīmā pogas nedaudz tuvāk aplim un platākas */
 .compass-2d-container.expanded .arc-buttons {
-  width: 75%;
-  transform: translate(-50%, -46%);
+    width: 75%;
+    transform: translate(-50%, -46%);
+    top: 47%;
+    width: 130%;
+    max-width: 630px;
 }
     .arc-buttons svg {
       width: 100%;
