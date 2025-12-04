@@ -130,6 +130,14 @@
       height: min(80vmin, 480px);
       padding: 12px;
     }
+/* Kad 2D kompass ir palielināts – izplūdina fonu un 3D kompasu */
+.pano-block.blurred #panorama,
+.pano-block.blurred #liveVideo,
+.pano-block.blurred .compass-container {
+  filter: blur(6px);
+  transition: filter 0.25s ease;
+  pointer-events: none;    /* fonā neko nevar nospiest */
+}
 
     /* Apaļais kompass iekšā */
     .compass-2d-core {
@@ -495,20 +503,26 @@
         }
       };
 
-      /* ===== 2D kompasa palielināšana/samazināšana ===== */
-      window.toggleExpand2D = function () {
-        var compass2dContainer = document.getElementById('compass2dContainer');
-        var textPath = document.querySelector('textPath[href="#leftArc"]');
-        if (!compass2dContainer || !textPath) return;
+/* ===== 2D kompasa palielināšana/samazināšana + fona blur ===== */
+window.toggleExpand2D = function () {
+  var compass2dContainer = document.getElementById('compass2dContainer');
+  var textPath = document.querySelector('textPath[href="#leftArc"]');
+  var panoBlock = document.querySelector('.pano-block');
+  if (!compass2dContainer || !textPath || !panoBlock) return;
 
-        if (compass2dContainer.classList.contains('expanded')) {
-          compass2dContainer.classList.remove('expanded');
-          textPath.textContent = "palielināt";
-        } else {
-          compass2dContainer.classList.add('expanded');
-          textPath.textContent = "samazināt";
-        }
-      };
+  if (compass2dContainer.classList.contains('expanded')) {
+    // Atgriežamies mazajā režīmā
+    compass2dContainer.classList.remove('expanded');
+    textPath.textContent = "palielināt";
+    panoBlock.classList.remove('blurred');   // noņem blur
+  } else {
+    // Palielināts režīms
+    compass2dContainer.classList.add('expanded');
+    textPath.textContent = "samazināt";
+    panoBlock.classList.add('blurred');      // uzliek blur
+  }
+};
+
 
       /* ===== toggleCamera kā iepriekš ===== */
       window.toggleCamera = function () {
