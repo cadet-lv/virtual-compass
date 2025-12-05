@@ -1,0 +1,1388 @@
+<!doctype html>
+<html lang="lv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direkcijas leņķis un azimuts — Virtuālais kompass</title>
+
+  <!-- Pannellum CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css">
+
+  <style>
+    body {
+      overflow: hidden;
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    /* ========= KONTEINERA IZMĒRS UN IZKĀRTOJUMS ========= */
+    .pano-block {
+      position: relative;
+      width: 100%;
+      height: 99vh;
+      overflow: hidden;
+      margin: 0 auto;
+      background: #05070b;
+    }
+
+    #panorama {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      z-index: 0;
+    }
+
+    #liveVideo {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    /* ========= 3D Kompass stils ========= */
+    .compass-container {
+      position: absolute;
+      left: 50%;
+      top: 75%;
+      transform: translate(-50%, -50%) rotateX(30deg);
+      perspective: 800px;
+      width: min(50vmin, 300px);
+      height: min(30vmin, 180px);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .compass-container img {
+      pointer-events: auto;
+    }
+
+    .compass-container::after {
+      content: "";
+      position: absolute;
+      left: 47.8%;
+      top: -69.7vh;
+      width: 3px;
+      height: 87.5vh;
+      background: linear-gradient(to top, rgba(255, 0, 0, 0.7), rgba(255, 0, 0, 0.1));
+      transform: translateX(-50%) rotate(0deg) rotateX(50deg);
+      z-index: 2;
+    }
+
+    .compass-base {
+      position: absolute;
+      width: 95%;
+      height: 85%;
+      transform: rotateX(45deg) rotateZ(90deg);
+      transform-origin: center center;
+      filter: drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.5));
+    }
+
+    .compass-scale {
+      position: absolute;
+      width: 51%;
+      left: 47.2%;
+      top: 66.4%;
+      transform: translate(-50%, -50%) rotateX(45deg) rotate(0deg);
+      transform-origin: center center;
+      filter:
+        drop-shadow(2px 4px 4px rgba(0, 0, 0, 0.1))
+        drop-shadow(0px 3px 4px rgba(0, 0, 0, 0.1))
+        drop-shadow(0px 7px 4px rgba(0, 0, 0, 0.4));
+      cursor: grab;
+    }
+
+    .compass-needle {
+      position: absolute;
+      width: 2.5%;
+      left: 47%;
+      top: 67%;
+      transform: translate(-50%, -50%) rotateX(45deg);
+      transform-origin: center center;
+      animation: none !important;
+    }
+
+    /* ========= 2D Kompass ========= */
+
+    .compass-2d-container {
+      position: absolute;
+      top: 1.5%;
+      right: 0.8%;
+      z-index: 3;
+
+      width: min(34vmin, 260px);
+      height: min(34vmin, 260px);
+      padding: 8px;
+      box-sizing: border-box;
+
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.7));
+
+      overflow: visible;
+      transition: all 0.3s ease;
+    }
+
+    .compass-2d-container.expanded {
+      top: 50%;
+      left: 50%;
+      right: auto;
+      transform: translate(-50%, -50%);
+      width: min(80vmin, 480px);
+      height: min(80vmin, 480px);
+      padding: 12px;
+    }
+
+    .pano-block.blurred #panorama,
+    .pano-block.blurred #liveVideo,
+    .pano-block.blurred .compass-container {
+      filter: blur(6px);
+      transition: filter 0.25s ease;
+      pointer-events: none;
+    }
+
+    .compass-2d-core {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+    }
+
+    .compass-2d-scale-Background,
+    .compass-2d-scale,
+    .compass-2d-needle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      transform-origin: center center;
+      display: block;
+    }
+
+    .compass-2d-scale-Background {
+      width: 82%;
+    }
+
+    .compass-2d-scale {
+      width: 84%;
+      cursor: grab;
+    }
+
+    .compass-2d-needle {
+      width: 4%;
+      pointer-events: none;
+    }
+
+    /* Grādu displejs virs kompasa */
+    .degree-display {
+      position: absolute;
+      top: 0px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 25px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 5px 10px;
+      border-radius: 5px;
+      z-index: 11;
+      display: none;
+    }
+
+    /* Loku pogas zem 2D skalas */
+    .arc-buttons {
+      position: absolute;
+      left: 50%;
+      top: 37%;
+      transform: translate(-50%, -38%);
+      width: 130%;
+      max-width: 320px;
+      pointer-events: none;
+    }
+
+    .compass-2d-container.expanded .arc-buttons {
+      transform: translate(-50%, -46%);
+      top: 47%;
+      width: 130%;
+      max-width: 630px;
+    }
+
+    .arc-buttons svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      pointer-events: none;
+    }
+
+    .arc {
+      fill: none;
+      stroke: rgba(165, 117, 0, 0.6);
+      stroke-width: 20;
+      cursor: pointer;
+      pointer-events: stroke;
+      transition: stroke 0.3s;
+    }
+
+    .arc:hover {
+      stroke: rgba(234, 166, 0, 1);
+    }
+
+    .arc-label {
+      font-size: 14px;
+      font-weight: bold;
+      fill: #fff;
+      pointer-events: none;
+      dominant-baseline: middle;
+      letter-spacing: 2px;
+    }
+
+    /* Paštesta laikā grādu poga ir deaktivēta */
+    body.selftest-active #rightArc {
+      pointer-events: none;
+      stroke: rgba(120, 120, 120, 0.6);
+    }
+    body.selftest-active textPath[href="#rightArc"] {
+      fill: #888;
+    }
+
+    /* ========= RADARS kreisajā pusē ========= */
+
+    .radar-container {
+      position: absolute;
+      top: 1.5%;
+      left: 0.8%;
+      z-index: 3;
+
+      width: min(34vmin, 260px);
+      height: min(34vmin, 260px);
+      padding: 8px;
+      box-sizing: border-box;
+
+      background-color: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      filter: drop-shadow(0 0 40px rgba(0, 0, 0, 0.7));
+    }
+
+    .radar-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .radar-bg {
+      fill: #05070b;
+    }
+
+    .radar-ring {
+      fill: none;
+      stroke: rgba(0, 255, 0, 0.5);
+      stroke-width: 1.5;
+    }
+
+    .radar-axis {
+      stroke: rgba(0, 255, 0, 0.35);
+      stroke-width: 1;
+    }
+
+    .radar-sweep {
+      fill: url(#radarSweepGradient);
+      opacity: 0.8;
+      transform-origin: 100px 100px;
+      animation: radarSweep 3s linear infinite;
+    }
+
+    @keyframes radarSweep {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .radar-target {
+      fill: #ffeb3b;
+      stroke: rgba(255, 255, 255, 0.8);
+      stroke-width: 1;
+      filter: drop-shadow(0 0 8px rgba(255, 235, 59, 1));
+      transition: opacity 0.2s ease;
+    }
+
+    .radar-target.hidden {
+      opacity: 0;
+    }
+
+    .radar-label {
+      font-size: 11px;
+      fill: rgba(0, 255, 0, 0.9);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .radar-az {
+      font-size: 13px;
+      fill: #ffffff;
+    }
+
+    /* ========= HOTSPOT MĒRĶĪTIS ========= */
+
+    .pnlm-hotspot.target-hotspot {
+      width: 32px;
+      height: 32px;
+      margin-left: -16px;
+      margin-top: -16px;
+      border-radius: 50%;
+      border: 2px solid #ffeb3b;
+      box-shadow: 0 0 16px rgba(255, 235, 59, 0.9);
+      background: radial-gradient(circle, rgba(255, 235, 59, 0.85) 0%, rgba(255, 235, 59, 0.25) 55%, transparent 70%);
+    }
+
+    .pnlm-hotspot.target-hotspot::before,
+    .pnlm-hotspot.target-hotspot::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 24px;
+      height: 2px;
+      background: rgba(0, 0, 0, 0.85);
+      transform: translate(-50%, -50%);
+    }
+
+    .pnlm-hotspot.target-hotspot::after {
+      width: 2px;
+      height: 24px;
+    }
+
+    /* ========= APakšējā pogu josla ========= */
+
+    .bottom-toolbar {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.75);
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      z-index: 6;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-btn {
+      border: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #437e12, #66a01f);
+      color: #fff;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .toolbar-btn:hover {
+      box-shadow: 0 0 10px rgba(102, 160, 31, 0.8);
+      transform: translateY(-1px);
+    }
+
+    .toolbar-btn:active {
+      transform: scale(0.97);
+      box-shadow: none;
+    }
+
+    .toolbar-btn.secondary {
+      background: linear-gradient(135deg, #2b313a, #3a414d);
+    }
+
+    .toolbar-btn.active {
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
+    }
+
+    .degree-input-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .degree-input-group label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .degree-input-group input {
+      width: 64px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 0.9rem;
+      text-align: right;
+      padding: 2px 2px 1px;
+      outline: none;
+    }
+
+    .degree-input-group span {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.8rem;
+    }
+
+    .degree-input-group button {
+      border: none;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(67, 126, 18, 0.9);
+      color: #fff;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      cursor: pointer;
+    }
+
+    .degree-input-group button:hover {
+      background: rgba(102, 160, 31, 1);
+    }
+
+    /* ========= Režīmu paneļi (apmācība / paštests) ========= */
+
+    .mode-panel {
+      position: absolute;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%);
+      max-width: min(540px, 90vw);
+      background: rgba(4, 8, 15, 0.96);
+      border-radius: 14px;
+      padding: 12px 14px;
+      color: #f5f7fb;
+      z-index: 7;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    .mode-panel h2 {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      color: #8ad040;
+    }
+
+    .mode-panel p {
+      margin: 4px 0;
+      line-height: 1.4;
+    }
+
+    .mode-panel-steps {
+      margin: 6px 0 0;
+      padding-left: 18px;
+    }
+
+    .mode-panel-steps li {
+      margin: 2px 0;
+    }
+
+    .mode-panel-footer {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mode-panel-footer .toolbar-btn {
+      font-size: 0.8rem;
+      padding: 4px 10px;
+    }
+
+    #trainingStepInfo {
+      font-size: 0.78rem;
+      opacity: 0.75;
+    }
+
+    /* Paštests specifika */
+    #selfTestFeedback {
+      margin-top: 6px;
+      font-size: 0.85rem;
+    }
+
+    #selfTestStats {
+      margin-top: 4px;
+      font-size: 0.78rem;
+      opacity: 0.8;
+    }
+
+    .selftest-input-row {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .selftest-input-row input {
+      width: 80px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 999px;
+      color: #fff;
+      padding: 3px 8px;
+      text-align: right;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    .selftest-input-row span {
+      font-size: 0.85rem;
+    }
+
+    /* ========= PRELOADER ========= */
+
+    body.preloading {
+      overflow: hidden;
+    }
+
+    #app-preloader {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: linear-gradient(180deg, #0b0f14, #11161d);
+      color: #eef2f7;
+      min-height: 100vh;
+      min-height: calc(var(--vh, 1vh) * 100);
+    }
+
+    #app-preloader .preloader-inner {
+      width: min(540px, 94vw);
+      background: rgba(0, 0, 0, .25);
+      border: 1px solid rgba(255, 255, 255, .08);
+      border-radius: 16px;
+      padding: 16px 18px 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+      text-align: center;
+    }
+
+    #app-preloader .brand {
+      display: block;
+      width: 190px;
+      max-width: 70%;
+      margin: 0 auto 10px;
+    }
+
+    #app-preloader .msg {
+      margin: .4rem 0 .8rem;
+      opacity: .9;
+    }
+
+    #app-preloader .progress {
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, .09);
+      border: 1px solid rgba(255, 255, 255, .12);
+      margin-bottom: .4rem;
+    }
+
+    #app-preloader .progress > span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #aa2d2d, #d63c3c);
+      transition: width .25s ease;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, .18);
+      border-top-color: #d63c3c;
+      margin: 0.4rem auto 0.8rem;
+      animation: spin 0.75s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .preloader-about {
+      margin-top: .6rem;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      opacity: .75;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      white-space: nowrap;
+    }
+
+    #preloaderSkip {
+      display: none;
+      margin-top: .8rem;
+      padding: .5rem .8rem;
+      background: #2b2f36;
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    #app-preloader.show-skip #preloaderSkip {
+      display: inline-block;
+    }
+
+    #app-preloader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .36s ease, visibility 0s linear .4s;
+    }
+
+    /* ========= RESPONSIVE ========= */
+
+    @media (max-width: 768px) {
+      .pano-block {
+        height: 300px;
+      }
+      .compass-container::after {
+        top: -63.8vh;
+        height: 80vh;
+      }
+      .compass-scale {
+        width: 49%;
+      }
+      .compass-needle {
+        width: 2.5%;
+      }
+      .compass-2d-container {
+        top: 2%;
+        right: 3%;
+        width: min(40vmin, 220px);
+        height: min(40vmin, 220px);
+        padding: 6px;
+      }
+      .radar-container {
+        top: 2%;
+        left: 3%;
+        width: min(40vmin, 220px);
+        height: min(40vmin, 220px);
+        padding: 6px;
+      }
+      .degree-display {
+        font-size: 16px;
+        padding: 4px 8px;
+      }
+      .bottom-toolbar {
+        bottom: 8px;
+      }
+      .mode-panel {
+        bottom: 80px;
+      }
+    }
+  </style>
+</head>
+
+<body class="preloading">
+
+  <!-- ===================== PRELOADER ===================== -->
+  <div id="app-preloader" role="status" aria-live="polite" aria-label="Ielādējam…">
+    <div class="preloader-inner">
+      <img class="brand" src="./img/CADET.LV.png" alt="CADET.LV">
+
+      <div class="spinner" aria-hidden="true"></div>
+
+      <div class="progress"><span style="width:0%"></span></div>
+      <p class="msg">Ielādējam… 0%</p>
+
+      <div class="preloader-about" aria-label="Par projektu">
+        <span>CADET.LV</span>
+        <span>INTERAKTĪVAIS KOMPASS</span>
+        <span>© JĀNIS EGLIS</span>
+      </div>
+
+      <button id="preloaderSkip" type="button">Turpināt</button>
+    </div>
+  </div>
+  <!-- ===================== /PRELOADER ===================== -->
+
+  <div class="pano-block">
+    <div id="panorama"></div>
+    <video id="liveVideo" autoplay playsinline></video>
+
+    <!-- RADARS -->
+    <div class="radar-container">
+      <svg class="radar-svg" viewBox="0 0 200 200">
+        <defs>
+          <radialGradient id="radarSweepGradient" cx="0" cy="0.5" r="1">
+            <stop offset="0%" stop-color="rgba(0,255,0,0.85)"/>
+            <stop offset="100%" stop-color="rgba(0,255,0,0)"/>
+          </radialGradient>
+        </defs>
+
+        <circle class="radar-bg" cx="100" cy="100" r="95"></circle>
+
+        <!-- koncentriskie apļi -->
+        <circle class="radar-ring" cx="100" cy="100" r="25"></circle>
+        <circle class="radar-ring" cx="100" cy="100" r="50"></circle>
+        <circle class="radar-ring" cx="100" cy="100" r="75"></circle>
+        <circle class="radar-ring" cx="100" cy="100" r="95"></circle>
+
+        <!-- koordinātu līnijas -->
+        <line class="radar-axis" x1="100" y1="5"   x2="100" y2="195"></line>
+        <line class="radar-axis" x1="5"   y1="100" x2="195" y2="100"></line>
+
+        <!-- skenēšanas sektors -->
+        <path class="radar-sweep"
+              d="M100,100 L100,5 A95,95 0 0,1 185,55 Z"></path>
+
+        <!-- mērķa punkts -->
+        <circle id="radarTarget" class="radar-target hidden" cx="100" cy="35" r="4"></circle>
+
+        <!-- uzraksti -->
+        <text class="radar-label" x="100" y="150" text-anchor="middle">MĒRĶA VIRZIENS</text>
+        <text class="radar-az" id="radarAzLabel" x="100" y="166" text-anchor="middle">--°</text>
+      </svg>
+    </div>
+
+    <!-- 3D Kompass -->
+    <div class="compass-container">
+      <img src="./img/pamatne.png" class="compass-base" alt="Kompass pamats (3D)">
+      <img src="./img/skala.png" class="compass-scale" alt="Kompass skala (3D)">
+      <img src="./img/adata.png" class="compass-needle" alt="Kompass adata (3D)">
+      <div class="rotation-indicator-3d">
+        <div class="rotation-dot-3d"></div>
+      </div>
+    </div>
+
+    <!-- 2D Kompass -->
+    <div class="compass-2d-container" id="compass2dContainer">
+      <div class="compass-2d-core">
+        <img src="./img/KOMPASA_SKALA_BACKGROUND.png"
+             class="compass-2d-scale-Background"
+             alt="Kompass fons (2D)">
+        <img src="./img/skala.png"
+             class="compass-2d-scale"
+             alt="Kompass skala (2D)">
+        <img src="./img/adata.png"
+             class="compass-2d-needle"
+             alt="Kompass adata (2D)">
+
+        <div id="degreeDisplay" class="degree-display">0°</div>
+      </div>
+
+      <div class="arc-buttons">
+        <svg viewBox="0 0 300 300">
+          <!-- Kreisais loks -->
+          <g transform="translate(-1.5,0)">
+            <path id="leftArc" class="arc"
+                  d="M50,170 A100,100 0 0 0 150,250"
+                  onclick="toggleExpand2D();"></path>
+            <text class="arc-label">
+              <textPath href="#leftArc" startOffset="50%" text-anchor="middle" dy="-15">
+                palielināt
+              </textPath>
+            </text>
+          </g>
+          <!-- Labais loks -->
+          <g transform="translate(1.5,0)">
+            <path id="rightArc" class="arc"
+                  d="M150,250 A100,100 0 0 0 250,170"
+                  onclick="toggleDegrees();"></path>
+            <text class="arc-label">
+              <textPath href="#rightArc" startOffset="50%" text-anchor="middle" dy="-15">
+                grādi
+              </textPath>
+            </text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Apakšējā vadības josla -->
+    <div class="bottom-toolbar">
+      <button id="btnTraining" class="toolbar-btn">APMĀCĪBA</button>
+      <button id="btnSelfTest" class="toolbar-btn secondary">PAŠTESTS</button>
+
+      <div class="degree-input-group">
+        <label for="manualDegree">SKALAS GRĀDI</label>
+        <input id="manualDegree" type="number" min="0" max="359" step="1" inputmode="decimal" />
+        <span>°</span>
+        <button id="btnApplyDegree" type="button">PAGRIEZT</button>
+      </div>
+    </div>
+
+    <!-- Apmācības panelis -->
+    <div id="trainingPanel" class="mode-panel">
+      <h2>Apmācība: azimuta noteikšana</h2>
+      <p id="trainingText"></p>
+      <p id="trainingStepInfo"></p>
+      <div class="mode-panel-footer">
+        <button id="btnTrainingPrev" class="toolbar-btn secondary" type="button">← Atpakaļ</button>
+        <button id="btnTrainingNext" class="toolbar-btn" type="button">Tālāk →</button>
+        <button id="btnTrainingClose" class="toolbar-btn secondary" type="button">Aizvērt</button>
+      </div>
+    </div>
+
+    <!-- Paštesta panelis -->
+    <div id="selfTestPanel" class="mode-panel">
+      <h2>Paštests</h2>
+      <p>Uzdevums: sameklē mērķīti panorāmā (dzeltenais krustiņš) un nosaki azimutu līdz tam, izmantojot kompasu.</p>
+      <div class="selftest-input-row">
+        <span>Tava atbilde:</span>
+        <input id="selfTestAnswer" type="number" min="0" max="359" step="1" inputmode="decimal" />
+        <span>° (±3° tiek ieskaitīti)</span>
+        <button id="btnCheckAnswer" class="toolbar-btn" type="button">Pārbaudīt</button>
+        <button id="btnNewTask" class="toolbar-btn secondary" type="button">Jauns mērķis</button>
+      </div>
+      <div id="selfTestFeedback"></div>
+      <div id="selfTestStats"></div>
+      <div class="mode-panel-footer">
+        <button id="btnSelfTestClose" class="toolbar-btn secondary" type="button">Beigt paštestu</button>
+      </div>
+    </div>
+
+  </div><!-- /.pano-block -->
+
+
+  <!-- Pannellum JS -->
+  <script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+  <script>
+    var cameraStream = null;
+
+    /* ===================== PRELOADER JS ===================== */
+    var pre = document.getElementById('app-preloader');
+    var preBar = pre ? pre.querySelector('.progress > span') : null;
+    var preMsg = pre ? pre.querySelector('.msg') : null;
+    var preSkip = document.getElementById('preloaderSkip');
+    var fakeProgress = 0;
+    var fakeTimer = null;
+
+    function setPreloaderProgress(pct) {
+      if (!preBar || !preMsg) return;
+      pct = Math.max(0, Math.min(100, pct));
+      preBar.style.width = pct + '%';
+      preMsg.textContent = 'Ielādējam… ' + pct + '%';
+    }
+
+    function hidePreloader() {
+      document.body.classList.remove('preloading');
+      if (pre) pre.classList.add('hidden');
+      if (fakeTimer) {
+        clearInterval(fakeTimer);
+        fakeTimer = null;
+      }
+    }
+
+    if (preSkip) {
+      preSkip.addEventListener('click', hidePreloader);
+      setTimeout(function () {
+        if (pre) pre.classList.add('show-skip');
+      }, 4000);
+    }
+
+    if (preBar) {
+      fakeProgress = 5;
+      setPreloaderProgress(fakeProgress);
+      fakeTimer = setInterval(function () {
+        fakeProgress += 5;
+        if (fakeProgress >= 90) {
+          fakeProgress = 90;
+          clearInterval(fakeTimer);
+          fakeTimer = null;
+        }
+        setPreloaderProgress(fakeProgress);
+      }, 400);
+    }
+    /* ===================== /PRELOADER JS ===================== */
+
+    window.onload = function () {
+      var viewer = pannellum.viewer('panorama', {
+        type: 'equirectangular',
+        panorama: 'https://i.imgur.com/w4maDHx.jpeg',
+        autoLoad: true,
+        showControls: true,
+        showFullscreenCtrl: false,
+        compass: false,
+        hfov: 200,
+        autoRotate: -2,
+        yaw: -0.5,
+        ignoreGPanoXMP: true
+      });
+
+      // Kad Pannellum pabeidz ielādi → 100% un paslēp preloaderi
+      viewer.on('load', function () {
+        setPreloaderProgress(100);
+        setTimeout(hidePreloader, 300);
+      });
+
+      /* ===== Globāli mainīgie režīmiem ===== */
+      var currentManualAngle = 0;      // skalas leņķis
+      var selfTestMode = false;
+      var trainingMode = false;
+
+      var currentTarget = null;        // paštesta mērķis (hotspot)
+      var currentCorrectAzimuth = null;
+      var correctCount = 0;
+      var totalCount = 0;
+
+      /* ===== Adata no panorāmas yaw ===== */
+      function updateCompassNeedles() {
+        var currentYaw = viewer.getYaw(); // -180..180, pozitīvs pretēji pulksteņr.
+        var needle3d = document.querySelector('.compass-needle');
+        if (needle3d) {
+          needle3d.style.transform =
+            'translate(-50%, -50%) rotateX(45deg) rotateZ(' + (-currentYaw) + 'deg)';
+        }
+        var needle2d = document.querySelector('.compass-2d-needle');
+        if (needle2d) {
+          needle2d.style.transform =
+            'translate(-50%, -50%) rotate(' + (-currentYaw) + 'deg)';
+        }
+      }
+      setInterval(updateCompassNeedles, 50);
+      viewer.on('viewchange', updateCompassNeedles);
+
+      /* ===== Skalās rotācija ===== */
+      function updateScales(angle) {
+        angle = ((angle % 360) + 360) % 360;
+        currentManualAngle = angle;
+
+        var compassScale3d = document.querySelector('.compass-scale');
+        if (compassScale3d) {
+          compassScale3d.style.transform =
+            'translate(-50%, -50%) rotateX(45deg) rotate(' + angle + 'deg)';
+        }
+
+        var compass2dScale = document.querySelector('.compass-2d-scale');
+        if (compass2dScale) {
+          compass2dScale.style.transform =
+            'translate(-50%, -50%) rotate(' + angle + 'deg)';
+        }
+
+        var degreeDisplay = document.getElementById('degreeDisplay');
+        if (degreeDisplay && degreeDisplay.style.display !== 'none') {
+          var displayAngle = (360 - angle) % 360;
+          degreeDisplay.innerText = Math.round(displayAngle) + "°";
+        }
+      }
+
+      function calculateAngle(clientX, clientY, element) {
+        var rect = element.getBoundingClientRect();
+        var centerX = rect.left + rect.width / 2;
+        var centerY = rect.top + rect.height / 2;
+        var dx = clientX - centerX;
+        var dy = clientY - centerY;
+        return Math.atan2(dy, dx) * (180 / Math.PI);
+      }
+
+      function angleDiff(a, b) {
+        var d = a - b;
+        var tmp = (d + 180) % 360;
+        if (tmp < 0) tmp += 360;
+        return tmp - 180;
+      }
+
+      var isDragging = false;
+      var activeElement = null;
+      var dragStartPointerAngle = 0;
+      var dragStartManualAngle = 0;
+
+      function startDrag(e) {
+        isDragging = true;
+        activeElement = e.currentTarget;
+        activeElement.style.cursor = "grabbing";
+
+        var clientX, clientY;
+        if (e.type.startsWith("touch")) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+
+        dragStartPointerAngle = calculateAngle(clientX, clientY, activeElement);
+        dragStartManualAngle = currentManualAngle;
+
+        e.preventDefault();
+      }
+
+      function onDrag(e) {
+        if (!isDragging || !activeElement) return;
+
+        var clientX, clientY;
+        if (e.type.startsWith("touch")) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+
+        var currentPointerAngle = calculateAngle(clientX, clientY, activeElement);
+        var delta = angleDiff(currentPointerAngle, dragStartPointerAngle);
+        var newAngle = dragStartManualAngle + delta;
+        updateScales(newAngle);
+
+        e.preventDefault();
+      }
+
+      function endDrag() {
+        if (activeElement) {
+          activeElement.style.cursor = "grab";
+        }
+        isDragging = false;
+        activeElement = null;
+      }
+
+      var compassScaleElem = document.querySelector('.compass-scale');
+      var compass2dScaleElem = document.querySelector('.compass-2d-scale');
+      [compassScaleElem, compass2dScaleElem].forEach(function (el) {
+        if (!el) return;
+        el.addEventListener("mousedown", startDrag);
+        el.addEventListener("touchstart", startDrag);
+      });
+      window.addEventListener("mousemove", onDrag);
+      window.addEventListener("touchmove", onDrag);
+      window.addEventListener("mouseup", endDrag);
+      window.addEventListener("touchend", endDrag);
+
+      updateScales(0);
+
+      /* ===== Radara mērķa pozicionēšana ===== */
+      var radarTargetEl = document.getElementById('radarTarget');
+      var radarAzLabel = document.getElementById('radarAzLabel');
+
+      function setRadarTarget(azimuthDeg) {
+        if (!radarTargetEl || !radarAzLabel) return;
+
+        if (azimuthDeg == null) {
+          radarTargetEl.classList.add('hidden');
+          radarAzLabel.textContent = '--°';
+          return;
+        }
+
+        var radius = 60; // pikseļi no centra
+        var rad = (azimuthDeg - 90) * Math.PI / 180; // 0° uz augšu
+        var cx = 100 + Math.cos(rad) * radius;
+        var cy = 100 + Math.sin(rad) * radius;
+
+        radarTargetEl.setAttribute('cx', cx.toFixed(2));
+        radarTargetEl.setAttribute('cy', cy.toFixed(2));
+        radarTargetEl.classList.remove('hidden');
+        radarAzLabel.textContent = Math.round(azimuthDeg) + '°';
+      }
+
+      /* ===== Grādu displeja toggling ===== */
+      window.toggleDegrees = function () {
+        if (selfTestMode) {
+          var fb = document.getElementById('selfTestFeedback');
+          if (fb) {
+            fb.textContent = 'Paštesta laikā digitālie grādi netiek rādīti – izmanto tikai skalu.';
+          }
+          return;
+        }
+        var degreeDisplay = document.getElementById('degreeDisplay');
+        if (!degreeDisplay) return;
+        if (degreeDisplay.style.display === 'none' || degreeDisplay.style.display === '') {
+          degreeDisplay.style.display = 'block';
+          var displayAngle = (360 - currentManualAngle) % 360;
+          degreeDisplay.innerText = Math.round(displayAngle) + "°";
+        } else {
+          degreeDisplay.style.display = 'none';
+        }
+      };
+
+      /* ===== 2D kompasa palielināšana/samazināšana + fona blur ===== */
+      window.toggleExpand2D = function () {
+        var compass2dContainer = document.getElementById('compass2dContainer');
+        var textPath = document.querySelector('textPath[href="#leftArc"]');
+        var panoBlock = document.querySelector('.pano-block');
+        if (!compass2dContainer || !textPath || !panoBlock) return;
+
+        if (compass2dContainer.classList.contains('expanded')) {
+          compass2dContainer.classList.remove('expanded');
+          textPath.textContent = "palielināt";
+          panoBlock.classList.remove('blurred');
+        } else {
+          compass2dContainer.classList.add('expanded');
+          textPath.textContent = "samazināt";
+          panoBlock.classList.add('blurred');
+        }
+      };
+
+      /* ===== Grādu ievades funkcija (skalas pagriešana) ===== */
+      var manualDegreeInput = document.getElementById('manualDegree');
+      var btnApplyDegree = document.getElementById('btnApplyDegree');
+
+      if (btnApplyDegree && manualDegreeInput) {
+        btnApplyDegree.addEventListener('click', function () {
+          var val = parseFloat(manualDegreeInput.value.replace(',', '.'));
+          if (isNaN(val)) return;
+          var norm = ((val % 360) + 360) % 360;
+          // mums vajag tādu angle, lai displejā būtu ievadītie grādi:
+          // displayAngle = (360 - angle) % 360  -> angle = 360 - display
+          var targetAngle = (360 - norm) % 360;
+          updateScales(targetAngle);
+        });
+      }
+
+      /* ===== Režīmu paneļi un pogas ===== */
+      var trainingPanel = document.getElementById('trainingPanel');
+      var selfTestPanel = document.getElementById('selfTestPanel');
+      var btnTraining = document.getElementById('btnTraining');
+      var btnSelfTest = document.getElementById('btnSelfTest');
+
+      var trainingText = document.getElementById('trainingText');
+      var trainingStepInfo = document.getElementById('trainingStepInfo');
+      var btnTrainingPrev = document.getElementById('btnTrainingPrev');
+      var btnTrainingNext = document.getElementById('btnTrainingNext');
+      var btnTrainingClose = document.getElementById('btnTrainingClose');
+
+      var trainingSteps = [
+        "1. Pagriez panorāmu tā, lai <strongmērķis būtu tieši priekšā</strong>. Vari izmantot arī radaru – zaļais sektors rāda, kurā virzienā atrodas mērķis.",
+        "2. Pagriez <strong>kompasa skalu</strong>, līdz uz tās esošā Z bultiņa sakrīt ar magnētiskās adatas Z bultiņu. Tā tu \"pielīmē\" skalu pie ziemeļiem.",
+        "3. Skaties no centra caur mērķi līdz skalai un <strong>nolasī azimutu grādos</strong> (0–360°). Šo vērtību vari ierakstīt atbildes lodziņā."
+      ];
+      var trainingIndex = 0;
+
+      function renderTrainingStep() {
+        if (!trainingText || !trainingStepInfo) return;
+        trainingText.innerHTML = trainingSteps[trainingIndex];
+        trainingStepInfo.textContent = "Solis " + (trainingIndex + 1) + " no " + trainingSteps.length;
+      }
+
+      function setMode(mode) {
+        trainingMode = (mode === 'training');
+        selfTestMode = (mode === 'selftest');
+
+        document.body.classList.toggle('selftest-active', selfTestMode);
+
+        if (btnTraining) btnTraining.classList.toggle('active', trainingMode);
+        if (btnSelfTest) btnSelfTest.classList.toggle('active', selfTestMode);
+
+        if (trainingPanel) trainingPanel.style.display = trainingMode ? 'block' : 'none';
+        if (selfTestPanel) selfTestPanel.style.display = selfTestMode ? 'block' : 'none';
+
+        if (trainingMode) {
+          trainingIndex = 0;
+          renderTrainingStep();
+        }
+
+        if (!selfTestMode) {
+          // Izslēdz paštestu, notīra mērķi
+          if (currentTarget && currentTarget.id) {
+            try { viewer.removeHotSpot(currentTarget.id); } catch (e) { }
+          }
+          currentTarget = null;
+          currentCorrectAzimuth = null;
+          setRadarTarget(null);
+          correctCount = 0;
+          totalCount = 0;
+          var stats = document.getElementById('selfTestStats');
+          if (stats) stats.textContent = "";
+        } else {
+          startNewSelfTestTask();
+        }
+      }
+
+      if (btnTraining) {
+        btnTraining.addEventListener('click', function () {
+          if (trainingMode) {
+            setMode('none');
+          } else {
+            setMode('training');
+          }
+        });
+      }
+
+      if (btnSelfTest) {
+        btnSelfTest.addEventListener('click', function () {
+          if (selfTestMode) {
+            setMode('none');
+          } else {
+            setMode('selftest');
+          }
+        });
+      }
+
+      if (btnTrainingPrev) {
+        btnTrainingPrev.addEventListener('click', function () {
+          trainingIndex = (trainingIndex - 1 + trainingSteps.length) % trainingSteps.length;
+          renderTrainingStep();
+        });
+      }
+      if (btnTrainingNext) {
+        btnTrainingNext.addEventListener('click', function () {
+          trainingIndex = (trainingIndex + 1) % trainingSteps.length;
+          renderTrainingStep();
+        });
+      }
+      if (btnTrainingClose) {
+        btnTrainingClose.addEventListener('click', function () {
+          setMode('none');
+        });
+      }
+
+      /* ===== Paštests ===== */
+      var selfTestAnswer = document.getElementById('selfTestAnswer');
+      var btnCheckAnswer = document.getElementById('btnCheckAnswer');
+      var btnNewTask = document.getElementById('btnNewTask');
+      var btnSelfTestClose = document.getElementById('btnSelfTestClose');
+      var selfTestFeedback = document.getElementById('selfTestFeedback');
+      var selfTestStats = document.getElementById('selfTestStats');
+
+      function yawFromAzimuth(az) {
+        // Pannellum yaw diapazons -180..180; uzskatām, ka azimuts 0° = yaw 0°.
+        var yaw = az;
+        if (yaw > 180) yaw = yaw - 360;
+        return yaw;
+      }
+
+      function startNewSelfTestTask() {
+        if (!selfTestMode) return;
+
+        // nejaušs azimuts 0–359
+        var az = Math.floor(Math.random() * 360);
+        currentCorrectAzimuth = az;
+
+        // novieto mērķi panorāmā (neliels nejaušs pacēlums, lai nav tieši centrā)
+        var yaw = yawFromAzimuth(az);
+        var pitch = (Math.random() * 20) - 10; // -10..10
+
+        if (currentTarget && currentTarget.id) {
+          try { viewer.removeHotSpot(currentTarget.id); } catch (e) { }
+        }
+
+        var hotspotId = 'target-' + Date.now();
+        currentTarget = { id: hotspotId, yaw: yaw, pitch: pitch };
+
+        viewer.addHotSpot({
+          id: hotspotId,
+          pitch: pitch,
+          yaw: yaw,
+          cssClass: 'target-hotspot'
+        });
+
+        setRadarTarget(az);
+
+        if (selfTestAnswer) selfTestAnswer.value = "";
+        if (selfTestFeedback) {
+          selfTestFeedback.textContent = "Uzdevums ielādēts. Sameklē mērķīti panorāmā un nosaki azimutu.";
+        }
+      }
+
+      function normalizeDeg(val) {
+        var n = ((val % 360) + 360) % 360;
+        return n;
+      }
+
+      if (btnCheckAnswer && selfTestAnswer) {
+        btnCheckAnswer.addEventListener('click', function () {
+          if (currentCorrectAzimuth == null) return;
+
+          var val = parseFloat(selfTestAnswer.value.replace(',', '.'));
+          if (isNaN(val)) {
+            if (selfTestFeedback) {
+              selfTestFeedback.textContent = "Ievadi skaitli grādos (0–359).";
+            }
+            return;
+          }
+
+          var entered = normalizeDeg(val);
+          var diff = Math.abs(entered - currentCorrectAzimuth);
+          if (diff > 180) diff = 360 - diff; // mazākais leņķis
+
+          totalCount++;
+          if (diff <= 3) {
+            correctCount++;
+            if (selfTestFeedback) {
+              selfTestFeedback.innerHTML =
+                "✅ Pareizi! Mērķa azimuts ir apmēram <strong>" + currentCorrectAzimuth +
+                "°</strong>. Tava atbilde: " + entered + "°.";
+            }
+            startNewSelfTestTask();
+          } else {
+            if (selfTestFeedback) {
+              selfTestFeedback.innerHTML =
+                "❌ Nepareizi. Mērķa azimuts ir apmēram <strong>" + currentCorrectAzimuth +
+                "°</strong>. " +
+                "Atceries:<br>1) pagriez panorāmu, lai mērķis ir tieši priekšā; " +
+                "2) pielīdzini kompasa skalu magnētiskajai adatai; " +
+                "3) nolasī grādus no skalas virzienā uz mērķi.";
+            }
+          }
+
+          if (selfTestStats) {
+            selfTestStats.textContent = "Rezultāts: " + correctCount + "/" + totalCount + " pareizas atbildes.";
+          }
+        });
+      }
+
+      if (btnNewTask) {
+        btnNewTask.addEventListener('click', function () {
+          startNewSelfTestTask();
+        });
+      }
+
+      if (btnSelfTestClose) {
+        btnSelfTestClose.addEventListener('click', function () {
+          setMode('none');
+        });
+      }
+
+      /* ===== toggleCamera kā iepriekš (ja vajadzēs) ===== */
+      window.toggleCamera = function () {
+        var video = document.getElementById("liveVideo");
+        var panorama = document.getElementById("panorama");
+        var btn = document.getElementById("toggleCameraButton");
+        if (!video || !panorama || !btn) return;
+
+        if (video.style.display === "none" || video.style.display === "") {
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+              .then(function (stream) {
+                cameraStream = stream;
+                video.srcObject = stream;
+                video.style.display = "block";
+                panorama.style.display = "none";
+                btn.textContent = "Panorama";
+              })
+              .catch(function (err) {
+                console.log("Kameras piekļuve neizdevās:", err);
+              });
+          }
+        } else {
+          if (cameraStream) {
+            cameraStream.getTracks().forEach(function (track) {
+              track.stop();
+            });
+          }
+          video.style.display = "none";
+          panorama.style.display = "block";
+          btn.textContent = "Kamera";
+        }
+      };
+    };
+  </script>
+
+</body>
+</html>
